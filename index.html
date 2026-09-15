@@ -1,0 +1,1082 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Rebuild the Blue Ops HVAC Contractor Executive Brief as a cleanly
+formatted PDF: consistent type scale, real tables, colored callouts,
+and clear section hierarchy instead of the cramped original layout.
+"""
+
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+    HRFlowable, KeepTogether, PageBreak, ListFlowable, ListItem
+)
+from reportlab.platypus.flowables import Flowable
+
+# ---------------------------------------------------------------- palette
+NAVY       = colors.HexColor("#152A4E")
+NAVY_2     = colors.HexColor("#1E3A66")
+TEAL       = colors.HexColor("#1AA79A")
+TEAL_DARK  = colors.HexColor("#0E7A70")
+RED        = colors.HexColor("#B4322A")
+INK        = colors.HexColor("#1B2530")
+SLATE      = colors.HexColor("#5B6B7C")
+LIGHT_BLUE = colors.HexColor("#EAF1FA")
+LIGHT_GRAY = colors.HexColor("#F2F4F7")
+LINE_GRAY  = colors.HexColor("#D7DEE6")
+WHITE      = colors.white
+
+PAGE_W, PAGE_H = letter
+MARGIN = 0.62 * inch
+
+doc = SimpleDocTemplate(
+    "/home/claude/Blue_Ops_Contractor_Newsletter.pdf",
+    pagesize=letter,
+    leftMargin=MARGIN, rightMargin=MARGIN,
+    topMargin=0.55 * inch, bottomMargin=0.6 * inch,
+    title="Blue Ops — HVAC Contractor Executive Brief, Issue 28",
+)
+
+CONTENT_W = PAGE_W - 2 * MARGIN
+
+# ---------------------------------------------------------------- styles
+ss = getSampleStyleSheet()
+
+def style(name, **kw):
+    base = dict(fontName="Helvetica", fontSize=9.5, leading=13.5,
+                textColor=INK, spaceAfter=6)
+    base.update(kw)
+    return ParagraphStyle(name, **base)
+
+S = {
+    "eyebrow": style("eyebrow", fontName="Helvetica-Bold", fontSize=8,
+                      textColor=TEAL, leading=10, spaceAfter=4,
+                      tracking=0.5),
+    "eyebrow_white": style("eyebrow_white", fontName="Helvetica-Bold", fontSize=8,
+                            textColor=colors.HexColor("#8FE3D8"), leading=10, spaceAfter=2),
+    "headline": style("headline", fontName="Helvetica-Bold", fontSize=20,
+                       leading=25, textColor=NAVY, spaceAfter=10),
+    "h1": style("h1", fontName="Helvetica-Bold", fontSize=13.5, leading=17,
+                textColor=NAVY, spaceBefore=4, spaceAfter=8),
+    "h2": style("h2", fontName="Helvetica-Bold", fontSize=11, leading=14,
+                textColor=NAVY, spaceBefore=2, spaceAfter=5),
+    "h2_red": style("h2_red", fontName="Helvetica-Bold", fontSize=10.5, leading=13,
+                     textColor=RED, spaceBefore=2, spaceAfter=4),
+    "tag": style("tag", fontName="Helvetica-Bold", fontSize=7.2, leading=9,
+                 textColor=SLATE, spaceAfter=4),
+    "body": style("body", fontSize=9.5, leading=13.6, spaceAfter=6),
+    "body_white": style("body_white", fontSize=9.7, leading=14.5,
+                         textColor=WHITE, fontName="Helvetica-Bold", spaceAfter=7),
+    "small": style("small", fontSize=8.2, leading=11.5, textColor=SLATE, spaceAfter=4),
+    "small_italic": style("small_italic", fontSize=8, leading=11,
+                           textColor=SLATE, fontName="Helvetica-Oblique", spaceAfter=6),
+    "cell": style("cell", fontSize=8.6, leading=11.5, spaceAfter=0),
+    "cell_bold": style("cell_bold", fontSize=8.6, leading=11.5,
+                        fontName="Helvetica-Bold", spaceAfter=0),
+    "cell_white": style("cell_white", fontSize=8.8, leading=12,
+                         textColor=WHITE, fontName="Helvetica-Bold", spaceAfter=0),
+    "cell_center": style("cell_center", fontSize=8.6, leading=11.5,
+                          alignment=TA_CENTER, spaceAfter=0),
+    "footer": style("footer", fontSize=7.6, leading=10.6, textColor=colors.HexColor("#B9C4D0")),
+    "doto": style("doto", fontSize=8.6, leading=12.5, textColor=NAVY_2,
+                   fontName="Helvetica-BoldOblique", spaceAfter=2, spaceBefore=4),
+    "stat_num": style("stat_num", fontName="Helvetica-Bold", fontSize=17,
+                       leading=19, textColor=NAVY, spaceAfter=0),
+    "stat_label": style("stat_label", fontSize=8.4, leading=11,
+                         textColor=SLATE, spaceAfter=0),
+}
+
+def P(text, s="body"):
+    return Paragraph(text, S[s] if isinstance(s, str) else s)
+
+def rule(color=LINE_GRAY, thickness=0.6, space_before=4, space_after=8):
+    return HRFlowable(width="100%", thickness=thickness, color=color,
+                       spaceBefore=space_before, spaceAfter=space_after)
+
+story = []
+
+# =================================================================
+# MASTHEAD
+# =================================================================
+masthead_left = [
+    P('<font color="white" size="17"><b>BLUE</b></font> '
+      '<font color="#8FE3D8" size="17">| </font>'
+      '<font color="white" size="17"><b>OPS</b></font>', "body_white"),
+    Spacer(1, 3),
+    P('<font color="#8FE3D8"><b>MARKETS&nbsp;&nbsp;|&nbsp;&nbsp;DATA&nbsp;&nbsp;|&nbsp;&nbsp;PERSPECTIVE</b></font>', S["eyebrow_white"]),
+    P('<font color="white"><b>HVAC CONTRACTOR EXECUTIVE BRIEF</b></font>', S["eyebrow_white"]),
+    P('<font color="#8FE3D8">ISSUE 28  ·  WEEK OF SEPTEMBER 14, 2026</font>', S["eyebrow_white"]),
+]
+masthead_right = [
+    P('<font color="#8FE3D8" size="8"><b>REAL DATA. CLEARER INSIGHTS.<br/>A STRONGER HVAC INDUSTRY.</b></font>',
+      ParagraphStyle("mr", fontSize=8, leading=11, textColor=colors.HexColor("#8FE3D8"),
+                     fontName="Helvetica-Bold", alignment=TA_LEFT)),
+]
+
+masthead_tbl = Table(
+    [[masthead_left, masthead_right]],
+    colWidths=[CONTENT_W * 0.68, CONTENT_W * 0.32],
+)
+masthead_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0, 0), (-1, -1), NAVY),
+    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ("LEFTPADDING", (0, 0), (0, 0), 14),
+    ("RIGHTPADDING", (1, 0), (1, 0), 14),
+    ("TOPPADDING", (0, 0), (-1, -1), 12),
+    ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+]))
+story.append(masthead_tbl)
+story.append(Spacer(1, 16))
+
+# =================================================================
+# HEADLINE
+# =================================================================
+story.append(P(
+    "A busy September doesn't mean a cash September. "
+    "Run the shop for capacity and margin — not call count.",
+    "headline"))
+
+# ---- Thesis box (navy) ----
+thesis_items = [
+    "Stale pricing was last week's risk.",
+    "This week's risk is capacity leakage.",
+    "Busy does not equal healthy.",
+    "Priorities 1–3 below decide whether activity becomes margin and cash.",
+]
+thesis_paras = [P('<font color="#8FE3D8" size="7.5"><b>THE THESIS — OPERATING MEMO</b></font>',
+                   ParagraphStyle("thesis_eyebrow", fontSize=7.5, textColor=colors.HexColor("#8FE3D8"),
+                                  fontName="Helvetica-Bold", spaceAfter=6))]
+for it in thesis_items:
+    thesis_paras.append(P(f'<font color="#3FD9C7">▸</font>&nbsp;&nbsp;{it}',
+                           S["body_white"]))
+thesis_tbl = Table([[thesis_paras]], colWidths=[CONTENT_W])
+thesis_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0, 0), (-1, -1), NAVY),
+    ("LEFTPADDING", (0, 0), (-1, -1), 16),
+    ("RIGHTPADDING", (0, 0), (-1, -1), 16),
+    ("TOPPADDING", (0, 0), (-1, -1), 12),
+    ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+]))
+story.append(thesis_tbl)
+story.append(Spacer(1, 14))
+
+# =================================================================
+# MONDAY MORNING — FIVE ACTIONS TABLE
+# =================================================================
+story.append(P("MONDAY MORNING — THE FIVE ACTIONS THAT MATTER THIS WEEK", S["h2"]))
+
+actions_data = [
+    [P("#", S["cell_white"]), P("ACTION", S["cell_white"]),
+     P("OWNER", S["cell_white"]), P("BY", S["cell_white"])],
+    [P("1", S["cell_bold"]),
+     P("<b>Put callback hours per 100 calls on the operating dashboard</b> — by tech, crew, cause, equipment type", S["cell"]),
+     P("Service + Install Mgr", S["cell"]), P("Mon", S["cell_center"])],
+    [P("2", S["cell_bold"]),
+     P("<b>Audit financed replacement economics</b> — GP dollars after dealer fee, by lender and plan", S["cell"]),
+     P("Sales Mgr + Controller", S["cell"]), P("Tue", S["cell_center"])],
+    [P("3", S["cell_bold"]),
+     P('<b>Pull "jobs done, not billed" and AR over 45/60</b> — one named owner, weekly review', S["cell"]),
+     P("CFO / Controller", S["cell"]), P("Wed", S["cell_center"])],
+    [P("4", S["cell_bold"]),
+     P("Bucket open <b>replacement quotes by age</b> (0–3 / 4–7 / 8–14 / 15+); reprice anything 15+ days against current cost", S["cell"]),
+     P("Sales Mgr + Sales Ops", S["cell"]), P("Thu", S["cell_center"])],
+    [P("5", S["cell_bold"]),
+     P("Pull the <b>call-handling dashboard</b> before approving any incremental marketing spend", S["cell"]),
+     P("Service Mgr + CSR Lead", S["cell"]), P("Fri", S["cell_center"])],
+]
+col_w = [0.30 * inch, CONTENT_W - 0.30*inch - 1.35*inch - 0.5*inch, 1.35 * inch, 0.5 * inch]
+actions_tbl = Table(actions_data, colWidths=col_w, repeatRows=1)
+actions_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0, 0), (-1, 0), NAVY_2),
+    ("TOPPADDING", (0, 0), (-1, 0), 6), ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [WHITE, LIGHT_GRAY]),
+    ("GRID", (0, 0), (-1, -1), 0.5, LINE_GRAY),
+    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ("TOPPADDING", (0, 1), (-1, -1), 7), ("BOTTOMPADDING", (0, 1), (-1, -1), 7),
+    ("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+    ("TEXTCOLOR", (0, 1), (0, -1), RED),
+    ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
+    ("ALIGN", (0, 1), (0, -1), "CENTER"),
+]))
+story.append(actions_tbl)
+story.append(P("Actions 1–3 are this week's ranked priorities. Everything else in the brief supports these three.",
+               S["small_italic"]))
+story.append(Spacer(1, 10))
+
+# =================================================================
+# WHAT CHANGED THIS WEEK (light blue box)
+# =================================================================
+changed_body = []
+changed_body.append(P('<font color="#0E5C55"><b>WHAT CHANGED THIS WEEK</b></font>',
+                       ParagraphStyle("wc_h", fontSize=9.5, fontName="Helvetica-Bold",
+                                      textColor=TEAL_DARK, spaceAfter=8)))
+changed_paras = [
+    ("1. Channel is moving. Contractor margin isn't proven.",
+     "HARDI July distributor revenue <b>+6.7%</b>. AHRI July shipments (released Sept 11): "
+     "<b>503,151 unitary AC</b>, <b>413,679 heat pumps</b>, <b>265,810 gas furnaces</b>. "
+     "The operator issue is not whether equipment moved — it's whether that movement produced "
+     "installed GP dollars and collected cash. Distributor revenue is not contractor revenue."),
+    ("2. Heat is now regional, not national.",
+     "NWS on Sept 14: 188 total alerts, 14 heat-related, 3 frost/freeze — vs 9 EHW + 13 HA a week "
+     "ago. National marketing playbooks stop working here. Re-rank each market by cooling urgency, "
+     "install-crew coverage, and heating readiness before allocating late-September and October spend."),
+    ("3. Financing pressure ticked up.",
+     "Freddie Mac Sept 10: 30-yr <b>6.76%</b> (up from 6.71%), 15-yr <b>6.09%</b>. NAHB August HMI "
+     "held weak at <b>35</b> (35% of builders cutting prices, 63% using incentives). Payment "
+     "presentation protects close rate. What it can quietly hide is that the financed close is "
+     "landing at lower GP dollars per job after dealer fees. The field question: are advisors "
+     "stretching terms, dropping upgrades, or relying on payment masking to hold close rate?"),
+    ("4. For many shops this month, the deciding variable is not whether demand exists — it's "
+     "whether operations can convert it cleanly.",
+     "Every external signal points inside: whether channel movement converts to GP dollars comes "
+     "down to callback hours (Signal #1), financing margin after fees (Signal #2), and jobs done "
+     "but not billed (Signal #3). The rest is backdrop."),
+]
+for head, body in changed_paras:
+    changed_body.append(P(f"<b>{head}</b>", S["h2_red"]))
+    changed_body.append(P(body, S["body"]))
+
+changed_tbl = Table([[changed_body]], colWidths=[CONTENT_W])
+changed_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0, 0), (-1, -1), LIGHT_BLUE),
+    ("BOX", (0, 0), (-1, -1), 0.75, TEAL),
+    ("LEFTPADDING", (0, 0), (-1, -1), 14), ("RIGHTPADDING", (0, 0), (-1, -1), 14),
+    ("TOPPADDING", (0, 0), (-1, -1), 12), ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+]))
+story.append(changed_tbl)
+story.append(Spacer(1, 12))
+
+# =================================================================
+# SIGNAL SHIFT TABLE
+# =================================================================
+story.append(P("SIGNAL SHIFT VS. ISSUE 27 (SEPT 7)", S["h2"]))
+shift_data = [
+    [P("SIGNAL", S["cell_white"]), P("ISSUE 27 (9/7)", S["cell_white"]),
+     P("NOW", S["cell_white"]), P("WHAT IT MEANS FOR THIS WEEK", S["cell_white"])],
+    [P("Heat alerts", S["cell_bold"]), P("9 EHW + 13 HA", S["cell"]),
+     P("14 heat + 3 frost/freeze", S["cell"]),
+     P("Regional capture matters more than national demand assumptions", S["cell"])],
+    [P("Supplier increases", S["cell_bold"]), P("Going live", S["cell"]),
+     P("Distributor sell-through +6.7%", S["cell"]),
+     P("Volume is available; margin discipline decides who captures it", S["cell"])],
+    [P("30-yr mortgage", S["cell_bold"]), P("6.71%", S["cell"]), P("6.76%", S["cell"]),
+     P("Payment presentation stays the close-rate tool; watch margin after dealer fees", S["cell"])],
+]
+cw = [1.15*inch, 1.25*inch, 1.55*inch, CONTENT_W - 1.15*inch - 1.25*inch - 1.55*inch]
+shift_tbl = Table(shift_data, colWidths=cw, repeatRows=1)
+shift_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0, 0), (-1, 0), NAVY_2),
+    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [WHITE, LIGHT_GRAY]),
+    ("GRID", (0, 0), (-1, -1), 0.5, LINE_GRAY),
+    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+]))
+story.append(shift_tbl)
+story.append(PageBreak())
+
+# =================================================================
+# 01 CEO READOUT
+# =================================================================
+def section_num_header(num, title):
+    tbl = Table([[P(num, ParagraphStyle("secnum", fontName="Helvetica-Bold", fontSize=11,
+                                          textColor=WHITE, alignment=TA_CENTER)),
+                  P(title, S["h1"])]],
+                colWidths=[0.34*inch, CONTENT_W - 0.34*inch])
+    tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, 0), TEAL),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (0, 0), "CENTER"),
+        ("TOPPADDING", (0,0), (0,0), 6), ("BOTTOMPADDING", (0,0),(0,0), 6),
+        ("LEFTPADDING", (1,0),(1,0), 10),
+    ]))
+    return tbl
+
+story.append(section_num_header("01", "CEO / PRESIDENT / OWNER / GM READOUT"))
+story.append(Spacer(1, 6))
+
+def label_body_row(label, body_text):
+    return Table(
+        [[P(label, ParagraphStyle("lbl", fontName="Helvetica-Bold", fontSize=8.6,
+                                    textColor=TEAL_DARK, leading=11)),
+          P(body_text, S["body"])]],
+        colWidths=[1.15*inch, CONTENT_W - 1.15*inch],
+        style=TableStyle([
+            ("VALIGN", (0,0), (-1,-1), "TOP"),
+            ("LEFTPADDING", (0,0), (-1,-1), 0),
+            ("TOPPADDING", (0,0), (-1,-1), 4), ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+            ("LINEBELOW", (0,0), (-1,0), 0.4, LINE_GRAY),
+        ]))
+
+story.append(label_body_row("STANCE",
+    "Margin-and-capacity control week, not \u201cdemand is back.\u201d The external data is "
+    "constructive but uneven; anyone who reads it as \u201cpush volume\u201d will spend October "
+    "explaining why revenue rose and gross profit didn't. Run the shop like a CFO — answer the "
+    "phone before buying leads, reprice aged quotes, watch callback hours, and check financing "
+    "margin after fees."))
+story.append(label_body_row("THREE DECISIONS THIS WEEK",
+    "1. Bucket open replacement quotes by age (0–3 / 4–7 / 8–14 / 15+). 8+ days = active "
+    "follow-up; 15+ = manager review and likely reprice.<br/>"
+    "2. Pull the call-handling dashboard before approving incremental marketing — fix "
+    "CSR/dispatch first.<br/>"
+    "3. Measure callback hours per 100 calls (not count), tag by tech/crew/cause, and "
+    "reallocate senior-tech time to replacement diagnostics and repeat-call customers."))
+story.append(label_body_row("WHAT CHANGED FROM LAST WEEK",
+    "A week ago: protect margin under a heat push. This week: heat moderated, channel data "
+    "came in constructive, and the binding issue moved inside the shop. Same discipline, "
+    "different pressure point."))
+story.append(Spacer(1, 10))
+
+# =================================================================
+# 02 SIGNAL BOARD
+# =================================================================
+story.append(section_num_header("02", "SIGNAL BOARD · RANKED"))
+story.append(Spacer(1, 4))
+story.append(P(
+    "Five signals ranked by margin-and-cash impact. The top three are internal — where margin "
+    "actually leaks this week. The bottom two are external — the market conditions creating the "
+    "pressure. Fix the top three; watch the bottom two.", S["small"]))
+story.append(Spacer(1, 4))
+story.append(P('<font color="#B4322A"><b>INTERNAL · THE THREE LEAKS — RANK THEM, OWN THEM, FIX THEM</b></font>  '
+               '<font color="#5B6B7C">(Signals #1–#3)</font>', S["eyebrow"]))
+story.append(Spacer(1, 4))
+
+def signal_block(num, title, tag, source_note, body_paragraphs, do_this, extra_table=None,
+                  accent=RED):
+    parts = []
+    head = Table(
+        [[P(f"#{num}", ParagraphStyle("sn", fontName="Helvetica-Bold", fontSize=13,
+                                        textColor=accent)),
+          P(f"<b>{title}</b>", S["h2"]),
+          P(tag, ParagraphStyle("tagr", fontName="Helvetica-Bold", fontSize=7,
+                                  textColor=WHITE, alignment=TA_CENTER))]],
+        colWidths=[0.4*inch, CONTENT_W - 0.4*inch - 1.3*inch, 1.3*inch],
+        style=TableStyle([
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+            ("BACKGROUND", (2,0), (2,0), SLATE),
+            ("ALIGN", (2,0), (2,0), "CENTER"),
+            ("TOPPADDING", (2,0), (2,0), 4), ("BOTTOMPADDING", (2,0), (2,0), 4),
+            ("LEFTPADDING", (0,0), (-1,-1), 0),
+        ]))
+    parts.append(head)
+    if source_note:
+        parts.append(P(source_note, S["small"]))
+    parts.append(Spacer(1, 2))
+    for bp in body_paragraphs:
+        parts.append(P(bp, S["body"]))
+    if extra_table is not None:
+        if isinstance(extra_table, list):
+            parts.extend(extra_table)
+        else:
+            parts.append(extra_table)
+        parts.append(Spacer(1, 6))
+    do_tbl = Table([[P("DO THIS →", ParagraphStyle("dt", fontName="Helvetica-Bold",
+                                                      fontSize=7.8, textColor=WHITE)),
+                      P(do_this, ParagraphStyle("dtb", fontSize=8.3, leading=11.5,
+                                                  textColor=NAVY, fontName="Helvetica-Bold"))]],
+                    colWidths=[0.75*inch, CONTENT_W - 0.75*inch],
+                    style=TableStyle([
+                        ("BACKGROUND", (0,0), (0,0), NAVY),
+                        ("BACKGROUND", (1,0), (1,0), colors.HexColor("#DCEEF2")),
+                        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+                        ("ALIGN", (0,0), (0,0), "CENTER"),
+                        ("TOPPADDING", (0,0), (-1,-1), 6), ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+                        ("LEFTPADDING", (1,0), (1,0), 8), ("RIGHTPADDING", (0,0), (-1,-1), 6),
+                    ]))
+    parts.append(do_tbl)
+    parts.append(Spacer(1, 12))
+    return parts
+
+# Signal 1
+story += signal_block(
+    1, "Callback hours are this week's capacity destroyer", "▲ LEAD SIGNAL",
+    "TAG: OPERATOR SIGNAL · UPGRADED FOCUS — see Featured Insight for the full math",
+    ["Callbacks are not quality anecdotes — they are capacity destruction. Every callback hour "
+     "a senior tech spends on rework is an hour not available for diagnostics, sold repairs, "
+     "maintenance conversion, or replacement lead generation.",
+     "In a shoulder week, that leakage decides whether you convert HARDI/AHRI channel movement "
+     "into GP dollars or spend the month treading water. Track hours per 100 calls — not count. "
+     "One 20-minute return and one 5-hour mess should never be treated equally."],
+    "Callback hours per 100 calls on the Monday dashboard, by tech/crew/cause/equipment type; "
+    "senior techs on replacement diagnostics and repeat-call customers, not first-in-first-out; "
+    "one senior-tech day per week reallocated to coaching the crews creating the most callback hours.",
+)
+
+# Signal 2 with economics table
+fin_data = [
+    [P("SAME $16,000 INSTALL · $12,000 EQUIPMENT COST · $4,000 GROSS PROFIT", S["cell_white"]),
+     P("GP $", S["cell_white"]), P("Δ VS CASH", S["cell_white"])],
+    [P("Cash sale", S["cell"]), P("$4,000", S["cell_center"]), P("—", S["cell_center"])],
+    [P("Financed, 6% dealer fee ($960)", S["cell"]), P("$3,040", S["cell_center"]), P("−24%", S["cell_center"])],
+    [P("Financed, 9% dealer fee ($1,440)", S["cell"]), P("$2,560", S["cell_center"]), P("−36%", S["cell_center"])],
+    [P("Financed at 6% + priced to hold cash GP → sticker ~$17,020", S["cell"]), P("$4,000", S["cell_center"]), P("flat", S["cell_center"])],
+]
+fin_tbl = Table(fin_data, colWidths=[CONTENT_W-2.1*inch, 1.0*inch, 1.1*inch])
+fin_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0,0), (-1,0), NAVY_2),
+    ("SPAN", (0,0), (0,0)),
+    ("ROWBACKGROUNDS", (0,1), (-1,-1), [WHITE, LIGHT_GRAY]),
+    ("GRID", (0,0), (-1,-1), 0.5, LINE_GRAY),
+    ("TOPPADDING", (0,0), (-1,-1), 5), ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+    ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+]))
+fin_note = P("Illustrative. Real dealer fees vary by lender, term, credit tier, and promotion. "
+             "Substitute your own numbers — the pattern holds. Financed sales cost real GP "
+             "dollars unless price or mix offsets the fee.", S["small_italic"])
+story += signal_block(
+    2, "Financing margin after fees is where GP dollars quietly disappear", "▲ OPERATOR SIGNAL",
+    "TAG: OPERATOR SIGNAL — Backdrop: 30-yr 6.76% (9/10), up from 6.71% (9/3); 15-yr 6.09%",
+    ["Most contractor content treats financing as pure sales support. It is also a margin risk. "
+     "A financed close rate can climb while GP dollars per financed job fall — and no one "
+     "notices until the monthly close. With rates back above 6.75% and homeowners "
+     "payment-sensitive, the sales team needs to know financed margin after fees per lender, "
+     "per plan, per advisor."],
+    "Segment close rate, ASP, GM%, and GP dollars after fee by lender, plan, and advisor; every "
+    "financed sale meets minimum GP $ after fees or requires manager approval before scheduling; "
+    "celebrate financed close rate only alongside net economics.",
+    extra_table=[fin_tbl, Spacer(1,4), fin_note,
+                 P("The diagnostic questions a veteran operator asks this week: is financing "
+                   "approval rate changing by lender? Are advisors moving to longer terms to "
+                   "hold the payment? Is the mix shifting down to lower equipment tiers? Are "
+                   "IAQ, accessory, and duct attach rates falling on financed sales? Are cash "
+                   "buyers behaving differently from financed buyers (close rate, average "
+                   "ticket, accessory attach)?", S["body"])],
+)
+
+# Signal 3
+story += signal_block(
+    3, "Jobs done, not billed — and AR aging that no one owns", "▲ OPERATOR SIGNAL",
+    "TAG: OPERATOR SIGNAL — Especially on commercial &amp; builder work",
+    ["Backlog is not cash. In busy months, jobs get completed but not billed, change orders get "
+     "executed without approval, retainage builds, and AR quietly slips past 45 and 60 days "
+     "while everyone is heads-down on production. Cash quality decays before revenue quality "
+     "shows any sign of stress.",
+     "In shoulder season, billing lag matters as much as sales lag — payroll and vendor terms "
+     "don't wait for paperwork. This is a billing-process and ownership problem more than a "
+     "customer problem. It wants one named owner working a weekly list with named customers, "
+     "dates, and escalation — not \u201cthe office.\u201d",
+     "Example: a $28,000 commercial job completed on Friday, billed Wednesday, invoiced at "
+     "Net-30 — cash lands roughly 5 business days later than a same-day-billed baseline. "
+     "Payroll runs Friday regardless. Do that across ten jobs a month and it becomes real "
+     "working-capital drag."],
+    "Weekly review of jobs done but not billed, AR over 45/60, retainage, and undocumented "
+    "change orders; one accountable owner (not a department); identify which jobs are "
+    "consuming capacity without turning into cash.",
+)
+
+story.append(P('<font color="#1AA79A"><b>EXTERNAL · THE TWO BACKDROP SIGNALS — CONTEXT, NOT DECIDERS</b></font>  '
+               '<font color="#5B6B7C">(Signals #4–#5)</font>', S["eyebrow"]))
+story.append(Spacer(1, 4))
+
+story += signal_block(
+    4, "Channel activity: opportunity, not proof of margin", "◆ BACKDROP · NEW DATA",
+    "TAG: NEW · HARDI + AHRI JULY — Distributor rev +6.7% · 503K AC · 414K HP · 266K furnaces",
+    ["HARDI July distributor revenue +6.7%. AHRI July shipments (released Sept 11): 503,151 "
+     "unitary AC, 413,679 heat pumps, 265,810 gas furnaces. Both are permission to run the "
+     "playbook — not evidence that the playbook worked. <b>Distributor revenue is not "
+     "contractor revenue. Shipments are not installed-margin dollars. Booked jobs are not "
+     "collected cash.</b> Also open: how much of channel movement is contractor sell-through "
+     "versus distributor inventory positioning ahead of the shoulder."],
+    "Compare July/August channel strength against your own replacement leads, sold GP dollars "
+    "(not close rate), install margin fade, and callback hours per 100 installs — force the "
+    "internal proof.",
+    accent=TEAL_DARK,
+)
+
+story += signal_block(
+    5, "Weather &amp; affordability: shoulder-season conditions, not a national wave", "◆ BACKDROP",
+    "TAG: BACKDROP — NWS 9/14: 188 alerts, 14 heat, 3 frost/freeze · NAHB HMI Aug 35",
+    ["Heat is regional, not national (14 heat alerts + 3 frost/freeze on 9/14 vs 9 EHW + 13 HA "
+     "on 9/7). If your area is still hot, the constraint is answering, booking, and converting; "
+     "if it's cooling, redirect senior-tech capacity to maintenance conversion, aged quotes, "
+     "callback reduction, and commercial PM before conversion softens further. Meanwhile NAHB "
+     "August HMI held weak at 35 (35% of builders cutting prices, 63% using incentives) — "
+     "homeowners remain payment-sensitive on the discretionary layer (accessories, IAQ, duct, "
+     "premium-efficiency)."],
+    "Don't run a national playbook across branches; re-rank each market by remaining cooling "
+    "urgency, maintenance backlog, install-crew coverage, and heating readiness before "
+    "allocating September and October marketing.",
+    accent=TEAL_DARK,
+)
+
+# Three rules box
+rules_body = [P('<font color="white"><b>THREE RULES THIS MONTH — NO SUGARCOATING</b></font>',
+                ParagraphStyle("rh", fontSize=9, fontName="Helvetica-Bold", textColor=WHITE, spaceAfter=8))]
+rules = [
+    "If callback hours are spiking, do not buy more leads to cover the problem. You will burn tech capacity twice.",
+    "If the financed close rate is holding but GP dollars per job are falling, do not celebrate the close rate. Fix the economics or stop selling those deals.",
+    "If jobs are completed but not billed, that is a management failure, not an accounting detail. Assign a name to it this week.",
+]
+for i, r in enumerate(rules, 1):
+    rules_body.append(P(f'<font color="#3FD9C7"><b>{i}.</b></font>&nbsp;&nbsp;{r}', S["body_white"]))
+rules_tbl = Table([[rules_body]], colWidths=[CONTENT_W])
+rules_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0,0), (-1,-1), NAVY),
+    ("LEFTPADDING", (0,0), (-1,-1), 16), ("RIGHTPADDING", (0,0), (-1,-1), 16),
+    ("TOPPADDING", (0,0), (-1,-1), 12), ("BOTTOMPADDING", (0,0), (-1,-1), 12),
+]))
+story.append(rules_tbl)
+story.append(Spacer(1, 10))
+
+story.append(P('<b>Also worth watching</b>', S["h2"]))
+story.append(P("<b>A2L / GFCI / code friction under the surface.</b> ACCA and ACHR News "
+               "continue to flag A2L and VRF complexity for contractors selling newer systems, "
+               "light-commercial, refrigeration, and code-sensitive replacements. Install "
+               "handoff notes, leak detection, documentation, and inspection readiness are "
+               "margin controls now. <i>Action:</i> confirm what each AHJ is enforcing this "
+               "month; document GFCI/equipment combinations on affected installs; triage "
+               "nuisance-trip calls separately from HVAC callbacks. "
+               "<font color='#5B6B7C' size='7.6'>— ACCA · ACHR News, Sept 2026</font>", S["body"]))
+story.append(P("<b>Shoulder season is process-repair season.</b> The temptation is to keep "
+               "pushing volume. The better use of the next four to six weeks is install QA, "
+               "startup/commissioning discipline, ride-alongs, and crew-level coaching on "
+               "recurring failure patterns. Reducing October callback load is worth more than "
+               "incremental late-September installs. "
+               "<font color='#5B6B7C' size='7.6'>— Blue Ops operating note, Sept 14, 2026</font>", S["body"]))
+
+story.append(PageBreak())
+
+# =================================================================
+# 03 FEATURED INSIGHT
+# =================================================================
+story.append(section_num_header("03", "FEATURED INSIGHT · CALLBACK HOURS ARE THIS MONTH'S HIDDEN CAPACITY LEAK"))
+story.append(Spacer(1, 6))
+
+stat_tbl = Table([[
+    P('<font color="white" size="8"><b>FEATURED INSIGHT</b></font><br/><br/>'
+      '<font color="white" size="14"><b>Callback-Hour<br/>Capacity Math</b></font>',
+      ParagraphStyle("fi1", fontSize=8, leading=12, textColor=WHITE)),
+    P('<font color="#152A4E" size="20"><b>$9,000</b></font><br/>'
+      '<font color="#152A4E" size="9">per week in gross profit<br/>capacity at risk</font>',
+      ParagraphStyle("fi2", fontSize=9, leading=12, textColor=NAVY, alignment=TA_CENTER)),
+]], colWidths=[CONTENT_W*0.55, CONTENT_W*0.45])
+stat_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0,0), (0,0), NAVY),
+    ("BACKGROUND", (1,0), (1,0), colors.HexColor("#EFE9D8")),
+    ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+    ("ALIGN", (1,0), (1,0), "CENTER"),
+    ("TOPPADDING", (0,0), (-1,-1), 16), ("BOTTOMPADDING", (0,0), (-1,-1), 16),
+    ("LEFTPADDING", (0,0), (0,0), 16),
+]))
+story.append(stat_tbl)
+story.append(Spacer(1, 10))
+
+story.append(P("Last week the featured math was quote aging — how a 6% material move quietly "
+               "shaves 270 bps off an unrepriced replacement. That risk is still live. This "
+               "week's math sits on the other side of the P&amp;L: capacity. Callbacks are not "
+               "incidents to log — they are capacity destruction. They don't show up as a bad "
+               "job; they show up as a missing tech-day, a diagnostic slot not run, and a "
+               "replacement lead not generated.", S["body"]))
+
+story.append(P("Channel-to-cash waterfall — where the July move gets absorbed", S["h2"]))
+waterfall = [
+    "Channel activity — HARDI +6.7%, AHRI July shipments strong",
+    "less booked opportunities that didn't get answered (missed / abandoned calls, slow callback)",
+    "less aged-quote leakage (270 bps on an unrepriced $12K job — last week's math still applies)",
+    "less callback-hour capacity drag (~$9,000/week GP capacity at illustrative assumptions — this week's math)",
+    "less dealer-fee drag on financed sales ($960 on a $16K install at 6%)",
+    "less jobs done but not billed / AR slippage past 45–60 days",
+    "= Actual GP dollars and cash landing in the business",
+]
+for i, w in enumerate(waterfall):
+    if w.startswith("="):
+        story.append(P(f"<b>{w}</b>",
+                        ParagraphStyle("wf_final", fontSize=9.8, fontName="Helvetica-Bold",
+                                       textColor=NAVY, leading=13, spaceAfter=6, spaceBefore=3)))
+    else:
+        prefix = "" if i == 0 else "↳ "
+        story.append(P(f"{prefix}{w}", S["body"]))
+story.append(P("Each step is real. A shop that ignores any one of them can post a \u201cbusy\u201d "
+               "September and a mediocre EBITDA month.", S["small_italic"]))
+story.append(Spacer(1, 6))
+
+story.append(P("Illustrative math · 500 service calls in a week at 12 callback hours per 100 calls", S["h2"]))
+math_data = [
+    [P("LINE ITEM", S["cell_white"]), P("CALCULATION", S["cell_white"]), P("RESULT", S["cell_white"])],
+    [P("Weekly call volume", S["cell"]), P("Assumption", S["cell"]), P("500 calls", S["cell_bold"])],
+    [P("Callback hours per 100 calls", S["cell"]), P("Assumption", S["cell"]), P("12 hrs", S["cell_bold"])],
+    [P("Total callback labor", S["cell"]), P("500 ÷ 100 × 12", S["cell"]), P("60 hours", S["cell_bold"])],
+    [P("Converted to tech-days", S["cell"]), P("60 ÷ 8 productive hrs", S["cell"]), P("7.5 tech-days", S["cell_bold"])],
+    [P("GP capacity at risk", S["cell"]), P("7.5 × $1,200 GP/tech-day", S["cell"]), P("≈ $9,000/week", S["cell_bold"])],
+]
+math_tbl = Table(math_data, colWidths=[2.6*inch, 2.1*inch, CONTENT_W-4.7*inch])
+math_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0,0), (-1,0), NAVY_2),
+    ("ROWBACKGROUNDS", (0,1), (-1,-1), [WHITE, LIGHT_GRAY]),
+    ("GRID", (0,0), (-1,-1), 0.5, LINE_GRAY),
+    ("TOPPADDING", (0,0), (-1,-1), 5), ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+]))
+story.append(math_tbl)
+story.append(P("Illustrative only. Your call mix, productive-hour assumption, and GP-per-tech-day "
+               "will move the numbers. Substitute your own trailing 8-week averages. This is a "
+               "sensitivity, not a benchmark.", S["small_italic"]))
+story.append(P("<b>Assumptions:</b> 500 weekly service calls (residential-heavy shop). 12 "
+               "callback hrs/100 calls as an illustrative sensitivity — track your own. 8 "
+               "productive hrs/tech-day. $1,200 GP opportunity per tech-day on diagnostic and "
+               "replacement-lead work. <b>Result:</b> 60 callback hours = 7.5 tech-days = "
+               "roughly 30 diagnostic slots not run and, at a 30% diagnostic-to-replacement "
+               "conversion, 9 replacement leads not generated — before warranty parts, "
+               "overtime, or customer trust erosion.", S["body"]))
+story.append(Spacer(1, 4))
+
+story.append(P("The compound bill (illustrative)", S["h2"]))
+story.append(P("<b>Cost 1 — redirected tech capacity:</b> 7.5 tech-days × $1,200 GP opportunity "
+               "= ~$9,000/week of GP capacity spent on rework", S["body"]))
+story.append(P("<b>Cost 2 — sold-GP forgone:</b> if 3 of the 9 lost replacement leads would have "
+               "closed at $12,000 with 35% GM, that is ~$12,600/week of sold gross profit that "
+               "never gets created", S["body"]))
+story.append(P('<font color="#B4322A"><b>Combined weekly GP exposure: ~$21,600</b></font> — '
+               "before warranty parts, overtime, or the customer-trust cost of the callback "
+               "itself", S["body"]))
+story.append(P("Illustrative sensitivity — substitute your own trailing 8-week close rate, "
+               "average ticket, and GM. The point is that callback hours cost you twice: "
+               "capacity you can't sell, and sold work that never gets created.", S["small_italic"]))
+story.append(P("<b>Why it matters this month.</b> HARDI and AHRI say equipment is moving. "
+               "Freddie Mac and NAHB say homeowners are payment-sensitive. If senior techs are "
+               "consuming their week on preventable rework, you cannot capture the replacement "
+               "conversion a channel-positive month makes available — the leads never get "
+               "created. Track hours, not count. Count treats a 20-minute return and a 5-hour "
+               "mess the same. Hours don't.", S["body"]))
+story.append(Spacer(1, 6))
+
+story.append(P("What disciplined shops are doing this week", S["h2"]))
+checklist = [
+    "Track callback hours — not count — by tech, crew, cause, and equipment type",
+    "Assign senior techs to high-probability replacement diagnostics and repeat-call customers, not first-in-first-out",
+    "Reallocate one senior-tech day per week to coach the crew(s) creating the most callback hours",
+    "Match install schedule to actual clean-completion capacity — don't oversell a week you can't install without rework",
+    "Pull the call-handling dashboard before approving incremental marketing spend",
+    "Separate GFCI/nuisance-trip and A2L-related callbacks from HVAC workmanship callbacks in the reporting",
+]
+story.append(ListFlowable(
+    [ListItem(P(c, S["body"]), leftIndent=0) for c in checklist],
+    bulletType="bullet", start="\u2610", bulletFontSize=9, leftIndent=14, bulletColor=TEAL_DARK,
+))
+story.append(Spacer(1, 8))
+
+story.append(P("Who owns it this week", S["h2"]))
+owner_data = [
+    [P("SERVICE MANAGER", S["cell_bold"]), P("Own callback hours per 100 calls, dispatch triage, and first-time-fix by tech", S["cell"])],
+    [P("INSTALL MANAGER", S["cell_bold"]), P("Own install callback hours by crew, sold-vs-installed GM, and substitution QA", S["cell"])],
+    [P("SALES MANAGER", S["cell_bold"]), P("Own aged-quote follow-up, financing margin after fees, and payment presentation discipline", S["cell"])],
+    [P("GM / OWNER", S["cell_bold"]), P("Review a one-page weekly exception report: callback hours per 100 calls, sold-vs-installed GM fade, quote aging 15+ days, AR over 45/60 days", S["cell"])],
+]
+owner_tbl = Table(owner_data, colWidths=[1.5*inch, CONTENT_W - 1.5*inch])
+owner_tbl.setStyle(TableStyle([
+    ("ROWBACKGROUNDS", (0,0), (-1,-1), [LIGHT_GRAY, WHITE]),
+    ("GRID", (0,0), (-1,-1), 0.5, LINE_GRAY),
+    ("VALIGN", (0,0), (-1,-1), "TOP"),
+    ("TOPPADDING", (0,0), (-1,-1), 6), ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+    ("LEFTPADDING", (0,0), (-1,-1), 7), ("RIGHTPADDING", (0,0), (-1,-1), 7),
+]))
+story.append(owner_tbl)
+story.append(Spacer(1, 8))
+story.append(P('<b><i>CEO question:</i></b> If your revenue grew with HARDI and AHRI, did your '
+               "gross-profit dollars grow with it — or did callback hours, dealer fees, and "
+               "margin fade eat the difference?", S["doto"]))
+
+story.append(PageBreak())
+
+# =================================================================
+# 04 OPERATOR'S AGENDA
+# =================================================================
+story.append(section_num_header("04", "OPERATOR'S AGENDA · 72 HOURS, WEEK, MONTH"))
+story.append(Spacer(1, 6))
+
+def agenda_item(num, title, detail, owner, trigger, review, outcome):
+    head = P(f"<b>{num}. {title}</b>", S["h2_red"])
+    body = P(detail, S["body"])
+    meta_rows = [
+        [P("<b>OWNER:</b> " + owner, S["small"]), P("<b>REVIEW:</b> " + review, S["small"])],
+    ]
+    if trigger:
+        meta_rows.insert(0, [P("<b>TRIGGER:</b> " + trigger, S["small"]), ""])
+    meta_tbl = Table(meta_rows, colWidths=[CONTENT_W*0.68, CONTENT_W*0.32])
+    meta_tbl.setStyle(TableStyle([
+        ("LEFTPADDING", (0,0), (-1,-1), 0), ("TOPPADDING", (0,0), (-1,-1), 1),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 1),
+    ]))
+    outcome_p = P(f'<font color="#0E7A70"><b>OUTCOME →</b></font> {outcome}', S["small"])
+    block = [head, body, meta_tbl, Spacer(1,2), outcome_p, Spacer(1, 9)]
+    return block
+
+story.append(P('<font color="#B4322A"><b>NEXT 24–72 HOURS</b></font>', S["eyebrow"]))
+story += agenda_item(1, "Bucket open replacement quotes by age.",
+    "0–3 / 4–7 / 8–14 / 15+ days with cost status, financing status, close probability, GP "
+    "dollars, advisor, and next follow-up on one view. 15+ days = manager review and likely reprice.",
+    "Sales Manager + Sales Ops", "", "72 hrs",
+    "Margin leak stops before jobs sell; aged-quote list segmented with GP recalculated at current cost.")
+story += agenda_item(2, "Pull the call-handling dashboard before any marketing decision.",
+    "Calls in, answered, abandoned, booked, not booked, after-hours, and replacement-lead "
+    "callback elapsed time on one view, trailing 7 and 14 days.",
+    "Service Manager + CSR Lead", "Abandoned/missed rising or callback slipping past same-day", "72 hrs",
+    "CSR/dispatch is the bottleneck you fix first, not the one you spend around.")
+story += agenda_item(3, "Run a callback-capacity review.",
+    "Pull callbacks by tech, crew, cause, equipment type, labor hours, and lost billable "
+    "capacity for the trailing 4 weeks. Compute callback hours per 100 calls.",
+    "Service Manager + Install Manager", "Callback hours rising or crew-concentrated", "72 hrs",
+    "Tech-day capacity leakage is visible and assigned to coaching, not left in the P&amp;L as \u201cbusy month.\u201d")
+story += agenda_item(4, "Dispatch triage refresh for the shoulder week.",
+    "Hot market: prioritize no-cool, vulnerable occupants, agreement commitments, repeat-call, "
+    "aged-system diagnostics, skill match. Cooled market: senior techs on maintenance "
+    "conversion, aged quotes, commercial PM. Never route on ticket size alone.",
+    "Dispatch Lead + Service Manager", "Maintenance being displaced without a decision rule", "72 hrs",
+    "Same-day completion, average ticket, and callback rate visible daily; agreements and safety protected.")
+
+story.append(P('<font color="#B4322A"><b>THIS WEEK</b></font>', S["eyebrow"]))
+story += agenda_item("P1", "Financing margin-after-fee review.",
+    "Pull financed close rate, cash close rate, dealer fee by plan, margin after fee, average "
+    "ticket by plan, and discount rate. Every financed sale meets minimum GP $ after fees or "
+    "requires manager approval.",
+    "Sales Manager + Controller", "Post-fee GM below target", "This week",
+    "Financing protects close rate without hollowing GM; plan-level economics visible weekly.")
+story += agenda_item("P2", "Sold-vs-installed GM audit on completed replacements.",
+    "Trailing 14 days. Fade >200 bps triggers a case review (materials, labor, substitutions, "
+    "callback exposure).",
+    "Install Manager + Controller", ">200 bps fade", "This week",
+    "Sold economics match installed; fade patterns traced to specific crews, substitutions, or pricing exceptions.")
+story += agenda_item("P3", "Commercial / builder AR review.",
+    "Pull AR over 45/60, retainage, undocumented change orders, billing lag, and jobs waiting "
+    "on customer approval. Identify jobs consuming capacity without turning into cash.",
+    "CFO/Controller + PM", "AR >60 growing or undocumented change orders open", "This week",
+    "Backlog quality separated from cash quality; documented change orders become the standard.")
+story += agenda_item("P4", "Segment heat pump economics from AC.",
+    "Track HP leads, quotes, close rate, average ticket, financing usage, dealer fee, and "
+    "install callback rate as their own line — not blended with straight AC. Meaningful given "
+    "July AHRI's 413,679 HP units.",
+    "Sales Manager + Controller", "HP close rate or margin diverging from AC", "This week",
+    "Clear view of whether HP growth is profitable growth; HP-vs-AC close rate and GM visible weekly.")
+
+story.append(P('<font color="#B4322A"><b>THIS MONTH</b></font>', S["eyebrow"]))
+story += agenda_item("P5", "Capacity allocation reset by operating model.",
+    "Owner-led: quote age, missed calls, callback hours, cash. Mid-sized: add advisor-level "
+    "quote aging, financing margin after fees, dispatch triage, install QA. Multi-branch: "
+    "branch-by-branch weather-adjusted performance, CSR, callback hrs/100, quote aging, AR, "
+    "manager accountability.",
+    "GM/COO", "Model-appropriate capacity KPIs not visible weekly", "Monthly",
+    "Reporting cadence matches the operating model; nothing over-engineered, nothing missing.")
+story += agenda_item("P6", "Segment September revenue quality.",
+    "Break the month into service repair, replacement, maintenance, commercial service, "
+    "commercial project, and builder — with GM and cash conversion by segment.",
+    "CFO/Controller", "", "Monthly",
+    "Clear line between transferable EBITDA and weather-inflated revenue.")
+
+story.append(PageBreak())
+
+# =================================================================
+# 05 SCOREBOARD
+# =================================================================
+story.append(section_num_header("05", "THIS WEEK'S SCOREBOARD"))
+story.append(Spacer(1, 6))
+story.append(P("This week, callback hours per 100 calls and financing margin after fees matter "
+               "most — they decide whether channel activity converts to gross-profit dollars.", S["body"]))
+
+story.append(P("The core three — track weekly, review by owner", S["h2"]))
+core_data = [
+    [P("#", S["cell_white"]), P("KPI", S["cell_white"]), P("GUARDRAIL", S["cell_white"]), P("OWNER", S["cell_white"])],
+    [P("1", S["cell_bold"]), P("Callback hours per 100 calls", S["cell_bold"]),
+     P("Track by tech/crew/cause/equipment; concentration or rising trend = review", S["cell"]),
+     P("Service + Install", S["cell"])],
+    [P("2", S["cell_bold"]), P("Financing margin after fees", S["cell_bold"]),
+     P("GP $ after fee by lender/plan/advisor; below min = manager approval", S["cell"]),
+     P("Sales + Finance", S["cell"])],
+    [P("3", S["cell_bold"]), P("Jobs done, not billed + AR over 45/60", S["cell_bold"]),
+     P("One named owner, weekly review with named customers and dates", S["cell"]),
+     P("CFO / Controller", S["cell"])],
+]
+core_tbl = Table(core_data, colWidths=[0.3*inch, 1.9*inch, CONTENT_W-0.3*inch-1.9*inch-1.2*inch, 1.2*inch], repeatRows=1)
+core_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0,0), (-1,0), NAVY_2),
+    ("ROWBACKGROUNDS", (0,1), (-1,-1), [WHITE, LIGHT_GRAY]),
+    ("GRID", (0,0), (-1,-1), 0.5, LINE_GRAY),
+    ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+    ("TOPPADDING", (0,0), (-1,-1), 6), ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+    ("LEFTPADDING", (0,0), (-1,-1), 7), ("RIGHTPADDING", (0,0), (-1,-1), 7),
+    ("TEXTCOLOR", (0,1), (0,-1), RED), ("ALIGN", (0,1), (0,-1), "CENTER"),
+]))
+story.append(core_tbl)
+story.append(Spacer(1, 10))
+
+story.append(P("Supporting metrics — track but don't crowd out the core three", S["h2"]))
+supp_data = [
+    [P("METRIC", S["cell_white"]), P("GUARDRAIL", S["cell_white"]), P("OWNER", S["cell_white"])],
+    [P("Quote aging (0–3 / 4–7 / 8–14 / 15+)", S["cell"]),
+     P("Active follow-up at 8 days; manager review + reprice at 15", S["cell"]), P("Sales Ops", S["cell"])],
+    [P("Sold vs installed GM (fade)", S["cell"]),
+     P("Fade >200 bps triggers case review by crew and substitution", S["cell"]), P("Install + Finance", S["cell"])],
+    [P("Missed / abandoned calls", S["cell"]),
+     P("Reviewed daily; rising or unowned = CSR/dispatch review", S["cell"]), P("CSR Lead + Service", S["cell"])],
+    [P("Replacement lead callback (elapsed)", S["cell"]),
+     P("Same-day healthy; 24–72h caution; 3+ days urgent review", S["cell"]), P("Sales + CSR", S["cell"])],
+]
+supp_tbl = Table(supp_data, colWidths=[2.2*inch, CONTENT_W-2.2*inch-1.5*inch, 1.5*inch], repeatRows=1)
+supp_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0,0), (-1,0), NAVY_2),
+    ("ROWBACKGROUNDS", (0,1), (-1,-1), [WHITE, LIGHT_GRAY]),
+    ("GRID", (0,0), (-1,-1), 0.5, LINE_GRAY),
+    ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+    ("TOPPADDING", (0,0), (-1,-1), 6), ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+    ("LEFTPADDING", (0,0), (-1,-1), 7), ("RIGHTPADDING", (0,0), (-1,-1), 7),
+]))
+story.append(supp_tbl)
+story.append(P("Guardrails vary by service mix, system age, geography, technician experience, "
+               "and commercial complexity. Use your own trailing history to set final targets — "
+               "Blue Ops does not publish universal HVAC benchmarks.", S["small_italic"]))
+story.append(Spacer(1, 10))
+
+# =================================================================
+# 06 M&A LENS
+# =================================================================
+story.append(section_num_header("06", "BUSINESS QUALITY / M&amp;A LENS"))
+story.append(Spacer(1, 6))
+story.append(P("This week's signals reward clean reporting and operating control — you can see "
+               "the leaks in the numbers — over weather- or channel-aided revenue.", S["body"]))
+
+strong = [
+    "Quote aging by bucket, booking rate by call type, callback hours per 100 calls all visible weekly",
+    "Financing margin after dealer fees tracked at deal level; minimum GP $ enforced by manager approval",
+    "Install margin fade by crew tracked; substitutions approved before install day",
+    "Documented change-order process on commercial and builder work; AR over 45/60 owned weekly",
+    "Management depth below the owner — someone other than the founder owns dispatch, sales, install, and finance day-to-day",
+]
+weak = [
+    "\u201cWe're busy\u201d — but cannot show GP per tech day, callback hours per 100 calls, or install margin fade by crew",
+    "\u201cFinancing helps close\u201d — but cannot show margin after dealer fees or discount rate on financed jobs",
+    "\u201cCallbacks are normal\u201d — but cannot show callback hours by cause, crew, or equipment type",
+    "\u201cBacklog is good\u201d — but cannot show AR over 45/60, retainage, and documented change orders",
+    "\u201cThe owner watches it\u201d — but no named manager owns the day-to-day process; founder is the fail-safe on every exception",
+]
+strong_col = [P('<font color="#0E7A70"><b>STRONGER CONTRACTOR PROFILE</b></font>', S["h2"])]
+for s in strong:
+    strong_col.append(P(f'<font color="#1AA79A">▸</font> {s}', S["body"]))
+weak_col = [P('<font color="#B4322A"><b>WEAKER CONTRACTOR PROFILE</b></font>', S["h2"])]
+for w in weak:
+    weak_col.append(P(f'<font color="#B4322A">▸</font> {w}', S["body"]))
+
+profile_tbl = Table([[strong_col, weak_col]], colWidths=[CONTENT_W/2 - 6, CONTENT_W/2 - 6])
+profile_tbl.setStyle(TableStyle([
+    ("VALIGN", (0,0), (-1,-1), "TOP"),
+    ("LEFTPADDING", (0,0), (0,0), 0), ("RIGHTPADDING", (0,0), (0,0), 12),
+    ("LEFTPADDING", (1,0), (1,0), 12), ("RIGHTPADDING", (1,0), (1,0), 0),
+    ("LINEBEFORE", (1,0), (1,0), 0.5, LINE_GRAY),
+]))
+story.append(profile_tbl)
+story.append(Spacer(1, 10))
+
+dil_body = [P('<font color="white"><b>THE DILIGENCE QUESTION THIS WEEK</b></font>',
+              ParagraphStyle("dh", fontSize=9, fontName="Helvetica-Bold", textColor=WHITE, spaceAfter=6)),
+            P("Show me 30 days of quote aging, missed calls, booking rate, callback hours per "
+              "100 calls, financing margin after fees, and AR over 45/60. If those aren't "
+              "visible, EBITDA quality gets discounted — regardless of what channel data or "
+              "heat did for the top line.", S["body_white"])]
+dil_tbl = Table([[dil_body]], colWidths=[CONTENT_W])
+dil_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0,0), (-1,-1), NAVY),
+    ("LEFTPADDING", (0,0), (-1,-1), 14), ("RIGHTPADDING", (0,0), (-1,-1), 14),
+    ("TOPPADDING", (0,0), (-1,-1), 10), ("BOTTOMPADDING", (0,0), (-1,-1), 10),
+]))
+story.append(dil_tbl)
+story.append(Spacer(1, 8))
+
+story.append(P("Six questions a buyer will ask about your September", S["h2"]))
+buyer_qs = [
+    "Did installed gross-profit dollars grow with revenue — or did callback hours, dealer fees, and margin fade absorb the difference?",
+    "What percentage of jobs sold came from quotes older than 14 days without a repricing check?",
+    "Are GFCI, A2L, and heat pump callbacks tracked separately from general HVAC workmanship callbacks?",
+    "Does the sales team know financed margin after dealer fees, per plan?",
+    "Does management know actual GM by department, branch, and crew — with a named owner for each?",
+    "What's the split between recurring service/replacement revenue and builder or low-margin project backlog — and what's the cash conversion on each?",
+]
+story.append(ListFlowable(
+    [ListItem(P(q, S["body"]), leftIndent=0) for q in buyer_qs],
+    bulletType="bullet", start="▸", bulletFontSize=9, leftIndent=14, bulletColor=TEAL_DARK,
+))
+
+story.append(PageBreak())
+
+# =================================================================
+# 07 WATCHLIST
+# =================================================================
+story.append(section_num_header("07", "NEXT MONDAY WATCHLIST · CONFIRM / WEAKEN / REVERSE"))
+story.append(Spacer(1, 6))
+
+def watch_item(num, title, confirm, weaken, reverse, decision):
+    rows = [
+        [P('<font color="#0E7A70"><b>Confirms →</b></font>', S["cell"]), P(confirm, S["cell"])],
+        [P('<font color="#B08D00"><b>Weakens →</b></font>', S["cell"]), P(weaken, S["cell"])],
+        [P('<font color="#B4322A"><b>Reverses →</b></font>', S["cell"]), P(reverse, S["cell"])],
+    ]
+    tbl = Table(rows, colWidths=[0.95*inch, CONTENT_W-0.95*inch])
+    tbl.setStyle(TableStyle([
+        ("VALIGN", (0,0), (-1,-1), "TOP"),
+        ("LEFTPADDING", (0,0), (-1,-1), 0), ("TOPPADDING", (0,0), (-1,-1), 2),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+    ]))
+    return [P(f"<b>{num}. {title}</b>", S["h2_red"]), tbl,
+            P(f'<font color="#152A4E"><b>Decision:</b></font> {decision}', S["body"]),
+            Spacer(1, 9)]
+
+story += watch_item(1, "HARDI/AHRI channel follow-through",
+    "next update shows continued channel strength and peers report GP dollars rising with it.",
+    "distributor revenue decelerates or shipment YoY softens.",
+    "channel holds but contractor GP dollars diverge — margin lost between distributor sale "
+    "and installed job.",
+    "shift from lead gen to pricing/close/install discipline immediately.")
+story += watch_item(2, "Weather patterns split",
+    "heat markets keep producing profitable replacement opportunities into late September.",
+    "heat alerts fade nationally; shift to shoulder-season maintenance accelerates.",
+    "early cool-down flips focus to fall maintenance and heating readiness.",
+    "reallocate marketing and dispatch by early October, don't wait for the first heating call.")
+story += watch_item(3, "Consumer financing pressure",
+    "mortgage rates stay mid-6s; payment presentation remains the close-rate tool.",
+    "rates ease and homeowners become more willing on discretionary upgrades.",
+    "financed close rate falls even with a payment on the page, or dealer declines rise.",
+    "re-scope plans, revisit dealer partnerships, sharpen cash-close and repair-vs-replace scripting.")
+story += watch_item(4, "CSR / dispatch discipline",
+    "answered-call and booked-call rates hold through the shoulder.",
+    "abandoned/missed calls creep up as staffing thins post-heat.",
+    "lead-source conversion collapses while marketing spend stays flat.",
+    "freeze incremental marketing; invest in CSR coaching and callback speed first.")
+story += watch_item(5, "Callback capacity leakage",
+    "callback hrs/100 flat or lower; senior-tech time on high-value work rises.",
+    "callback hours creep on rushed late-summer installs.",
+    "October callback surge concentrated in specific crews.",
+    "pause new-install growth for the affected crew(s); redirect senior-tech capacity to "
+    "coaching and install QA before heating season.")
+story += watch_item(6, "Commercial AR / change-order discipline",
+    "AR over 45/60 held or improved; documented change orders keep pace with field work.",
+    "retainage and 60+ AR grow without a named owner working them weekly.",
+    "jobs completed but not billed, or change orders performed without approval.",
+    "stop taking new work under those contract terms until AR and change-order process is fixed.")
+
+# =================================================================
+# 08 BEFORE FRIDAY
+# =================================================================
+friday = [
+    "Pull open replacement quotes by 0–3 / 4–7 / 8–14 / 15+ day bucket with GP dollars visible",
+    "Publish the call-handling dashboard for the trailing 7 and 14 days",
+    "Compute callback hours per 100 calls by tech, crew, cause, and equipment type for the trailing 4 weeks",
+    "Audit financing margin after dealer fees on every financed sale this month",
+    "Review AR over 45/60, retainage, and undocumented change orders on commercial/builder work",
+    "Publish sold-vs-installed GM fade on replacements completed in the trailing 14 days",
+]
+before_friday_block = [
+    section_num_header("08", "BEFORE FRIDAY"),
+    Spacer(1, 6),
+    ListFlowable(
+        [ListItem(P(f, S["body"]), leftIndent=0) for f in friday],
+        bulletType="bullet", start="\u2610", bulletFontSize=9, leftIndent=14, bulletColor=TEAL_DARK,
+    ),
+]
+story.append(KeepTogether(before_friday_block))
+story.append(Spacer(1, 10))
+
+# Final bottom line
+final_body = [P('<font color="white"><b>FINAL BOTTOM LINE</b></font>',
+                ParagraphStyle("fh", fontSize=10, fontName="Helvetica-Bold", textColor=WHITE, spaceAfter=8)),
+              P("Busy is not the same as healthy. The channel moved, but distributor revenue is "
+                "not contractor revenue. The market is active enough to make money and "
+                "unforgiving enough to expose sloppy operations. The contractor who wins this "
+                "month isn't the one with the most calls — it's the one who controls callback "
+                "hours, watches financing margin after fees, and gets sold and completed work "
+                "billed and collected fast. Channel data and heat build the top line. Only "
+                "systems build transferable value.", S["body_white"])]
+final_tbl = Table([[final_body]], colWidths=[CONTENT_W])
+final_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0,0), (-1,-1), NAVY),
+    ("LEFTPADDING", (0,0), (-1,-1), 16), ("RIGHTPADDING", (0,0), (-1,-1), 16),
+    ("TOPPADDING", (0,0), (-1,-1), 14), ("BOTTOMPADDING", (0,0), (-1,-1), 14),
+]))
+story.append(final_tbl)
+story.append(Spacer(1, 14))
+
+# =================================================================
+# ABOUT / SOURCES
+# =================================================================
+story.append(rule())
+story.append(P("<b>About this brief</b>", S["h2"]))
+story.append(P("Built for HVAC contractor owners, CEOs, presidents, and GMs. Every material "
+               "claim sourced and dated. Recurring themes get a full section only with new "
+               "evidence, a changed risk level, or a new operating implication.", S["body"]))
+story.append(P("Blue Ops supports HVAC contractors and their investors across the operating and "
+               "investment lifecycle.", S["body"]))
+story.append(Spacer(1, 4))
+story.append(P("<b>Sources this week</b>", S["h2"]))
+story.append(P("HARDI — July distributor revenue +6.7% · AHRI — July 2026 U.S. Heating and "
+               "Cooling Equipment Shipment Data (released Sept 11, 2026) · NOAA/NWS — Active "
+               "Weather Alerts (Sept 14: 188 total, 14 heat, 3 frost/freeze, 10 flood) · "
+               "Freddie Mac — Primary Mortgage Market Survey, Sept 10, 2026 (30-yr 6.76%, "
+               "15-yr 6.09%) · NAHB/Wells Fargo — Housing Market Index, August 2026 (HMI 35) · "
+               "ACCA — Newsroom (GFCI/HVAC code resources, contractor context) · HVACR "
+               "Business — Contractor cash-flow, change-order, slow-pay, and operational risk "
+               "coverage.", S["small"]))
+story.append(P("<i>Source limitations:</i> HARDI's public news page carries the +6.7% "
+               "headline; detailed distributor breakout and degree-day data are "
+               "member-restricted. Weather counts are point-in-time from the NWS active-alerts "
+               "API on Sept 14 and change intraday. Freddie Mac PMMS is a national average and "
+               "does not reflect jumbo, non-QM, or state-level variation. NAHB HMI is a builder "
+               "sentiment index, not a demand measure. Callback-capacity math in the Featured "
+               "Insight is labeled illustrative — no universal HVAC benchmark is claimed.",
+               S["small_italic"]))
+
+# =================================================================
+# FOOTER (dark band)
+# =================================================================
+footer_body = [
+    P('<font color="white" size="13"><b>BLUE</b></font> <font color="#8FE3D8" size="13">| </font>'
+      '<font color="white" size="13"><b>OPS</b></font>', S["body_white"]),
+    Spacer(1, 6),
+    P('<font color="#8FE3D8">Experienced people. Better intelligence. Real execution.</font>',
+      ParagraphStyle("ftag", fontSize=9, textColor=colors.HexColor("#8FE3D8"))),
+    Spacer(1, 8),
+]
+footer_cols = Table([[
+    [P('<font color="#8FE3D8" size="7.5"><b>SERVICES</b></font>', S["footer"]),
+     P("Overview<br/>M&amp;A Planning &amp; Transaction Services<br/>Office of the CFO<br/>"
+       "Operations &amp; Augmented Finance<br/>Team Compass", S["footer"])],
+    [P('<font color="#8FE3D8" size="7.5"><b>OFFICES</b></font>', S["footer"]),
+     P("Minneapolis<br/>Chicago<br/>Charlotte<br/>Dublin", S["footer"])],
+]], colWidths=[CONTENT_W*0.6, CONTENT_W*0.4])
+footer_cols.setStyle(TableStyle([
+    ("LEFTPADDING", (0,0), (-1,-1), 0), ("VALIGN", (0,0), (-1,-1), "TOP"),
+]))
+footer_body.append(footer_cols)
+footer_body.append(Spacer(1, 10))
+footer_body.append(P("Prepared for Blue Ops clients and contractor leadership. Market, "
+                      "commodity, and equity figures are drawn from third-party sources and "
+                      "are provided for discussion only — not investment, legal, or accounting "
+                      "advice. Linked articles remain the property of their publishers.",
+                      S["footer"]))
+footer_body.append(Spacer(1, 4))
+footer_body.append(P("Blue Ops Partners, 7900 Xerxes Ave South, Floor 21, Bloomington, MN "
+                      "55431, United States", S["footer"]))
+footer_body.append(Spacer(1, 2))
+footer_body.append(P('<font color="#8FE3D8">blueopspartners.com · Contact · Privacy &amp; '
+                      'Legal · Unsubscribe</font>', S["footer"]))
+
+footer_tbl = Table([[footer_body]], colWidths=[CONTENT_W])
+footer_tbl.setStyle(TableStyle([
+    ("BACKGROUND", (0,0), (-1,-1), NAVY),
+    ("LEFTPADDING", (0,0), (-1,-1), 16), ("RIGHTPADDING", (0,0), (-1,-1), 16),
+    ("TOPPADDING", (0,0), (-1,-1), 16), ("BOTTOMPADDING", (0,0), (-1,-1), 16),
+]))
+story.append(Spacer(1, 10))
+story.append(footer_tbl)
+
+# =================================================================
+# PAGE NUMBERS / RUNNING HEADER
+# =================================================================
+def on_page(canvas_obj, doc_obj):
+    canvas_obj.saveState()
+    canvas_obj.setFont("Helvetica", 8)
+    canvas_obj.setFillColor(SLATE)
+    canvas_obj.drawString(MARGIN, 0.35*inch, "Blue Ops · HVAC Contractor Executive Brief · Issue 28")
+    canvas_obj.drawRightString(PAGE_W - MARGIN, 0.35*inch, f"Page {doc_obj.page}")
+    canvas_obj.restoreState()
+
+doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
+print("done")
